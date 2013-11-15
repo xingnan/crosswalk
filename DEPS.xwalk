@@ -10,8 +10,8 @@ chromium_version = '31.0.1650.12'
 chromium_crosswalk_point = 'f4c5d15d49d02b74eb834325e4dff50b16b53243'
 blink_crosswalk_point = '1e5189980e80ac43b3721c569956b8b09cdec0bf'
 deps_xwalk = {
-  'src': 'https://github.com/crosswalk-project/chromium-crosswalk.git@%s' % chromium_crosswalk_point,
-  'src/third_party/WebKit': 'https://github.com/crosswalk-project/blink-crosswalk.git@%s' % blink_crosswalk_point,
+  'src': 'https://github.com/crosswalk-xdk/chromium-crosswalk.git@%s' % chromium_crosswalk_point,
+  'src/third_party/WebKit': 'https://github.com/crosswalk-xdk/blink-crosswalk.git@%s' % blink_crosswalk_point,
 
   # Required until chromium-crosswalk gets past Chromium r234545 ("Rolling
   # grit-i18n to latest version"). This is used for incremental Tizen builds to
