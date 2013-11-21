@@ -1259,7 +1259,8 @@ Index: src/third_party/xdk/xdk-code-map.cc
 +  if (!first.size() || !end.size()) return str;
 +
 +  std::stringstream ss;
-+  ss << first << ',' << std::showbase << std::hex << addr << end;
++  ss << first << ','
++     << std::showbase << std::hex << static_cast<void*>(addr) << end;
 +  return ss.str();
 +}
 +
