@@ -1175,7 +1175,8 @@ Index: src/third_party/xdk/xdk-agent.h
 +        m_agent_access(new v8engine::Mutex()),
 +        m_server(new v8engine::Socket()),
 +        m_terminate(false),
-+        m_alive(false) {
++        m_alive(false),
++        m_isolate(NULL) {
 +  }
 +  XDKAgent(const XDKAgent&);
 +  XDKAgent& operator=(const XDKAgent&);
