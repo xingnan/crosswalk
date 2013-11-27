@@ -1140,9 +1140,9 @@ Index: src/third_party/xdk/xdk-agent.h
 +const int XDK_AGENT_PORT = 48899;
 +
 +static const char* XDK_TRACE_FILE =
-+  "/data/data/com.intel.app_preview/files/result.xdk2v8";
++  "/data/data/com.intel.app_analyzer/files/result.xdk2v8";
 +static const char* XDK_MARKER_FILE =
-+  "/data/data/com.intel.app_preview/files/profiler.run";
++  "/data/data/com.intel.app_analyzer/files/profiler.run";
 +
 +// Callback called by V8 builtin logger.
 +void EventHandler(const v8::JitCodeEvent* event);
