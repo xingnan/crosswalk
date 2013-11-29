@@ -1,34 +1,82 @@
-Index: build/features.gypi
+Index: src/log.h
 ===================================================================
---- build/features.gypi	(revision 16872)
-+++ build/features.gypi	(working copy)
-@@ -43,6 +43,9 @@
+--- src/log.h	(revision 16872)
++++ src/log.h	(working copy)
+@@ -352,6 +352,13 @@
+   // When data collection is paused, CPU Tick events are discarded.
+   void StopProfiler();
  
-     'v8_use_snapshot%': 'true',
- 
-+     # Enable XDK profiling support by default.
-+    'v8_enable_xdkprof': 1,
++  // Resumes collection of CPU Tick events.
++  void XDKResumeProfiler();
 +
-     # With post mortem support enabled, metadata is embedded into libv8 that
-     # describes various parameters of the VM for use by debuggers. See
-     # tools/gen-postmortem-metadata.py for details.
-Index: tools/gyp/v8.gyp
-===================================================================
---- tools/gyp/v8.gyp	(revision 16872)
-+++ tools/gyp/v8.gyp	(working copy)
-@@ -554,6 +554,9 @@
-         }, {
-           'toolsets': ['target'],
-         }],
-+       ['v8_enable_xdkprof==1', {
-+          'dependencies': ['../../src/third_party/xdk/xdk-v8.gyp:v8_xdk',],
-+        }],
-         ['v8_target_arch=="arm"', {
-           'sources': [  ### gcmole(arch:arm) ###
-             '../../src/arm/assembler-arm-inl.h',
++  // XDK agent uses it log code map (list of CodeAdded event
++  // before resume CPU Tick events.
++  Log* XDKGetLog() { return log_; }
++
+   void LogExistingFunction(Handle<SharedFunctionInfo> shared,
+                            Handle<Code> code);
+   // Logs all compiled functions found in the heap.
+@@ -474,6 +481,19 @@
+   virtual void CodeCreateEvent(Logger::LogEventsAndTags tag,
+                                Code* code,
+                                int args_count) = 0;
++
++  // This overload function is already added in the latest V8 version.
++  // We have to do it because currently Crosswalk depends on V8 version which
++  // does not have this overload function.
++  // It will be removed once Crosswalk moves on new latest V8 version.
++  virtual void CodeCreateEvent(Logger::LogEventsAndTags tag,
++                               Code* code,
++                               SharedFunctionInfo* shared,
++                               CompilationInfo* info,
++                               Name* source,
++                               int line,
++                               int column) { }
++
+   virtual void CallbackEvent(Name* name, Address entry_point) = 0;
+   virtual void GetterCallbackEvent(Name* name, Address entry_point) = 0;
+   virtual void SetterCallbackEvent(Name* name, Address entry_point) = 0;
+@@ -510,6 +530,18 @@
+                                CompilationInfo* info,
+                                Name* source,
+                                int line);
++
++  // This overload function is already added in the latest V8 version.
++  // We have to do it because currently Crosswalk depends on V8 version which
++  // does not have this overload function.
++  // It will be removed once Crosswalk moves on new latest V8 version.
++  virtual void CodeCreateEvent(Logger::LogEventsAndTags tag,
++                               Code* code,
++                               SharedFunctionInfo* shared,
++                               CompilationInfo* info,
++                               Name* source,
++                               int line, int column);
++
+   virtual void RegExpCodeCreateEvent(Code* code, String* source);
+ 
+   virtual void CallbackEvent(Name* name, Address entry_point) { }
+@@ -518,15 +550,15 @@
+   virtual void SharedFunctionInfoMoveEvent(Address from, Address to) { }
+   virtual void CodeMovingGCEvent() { }
+ 
+- private:
++ protected:
+   class NameBuffer;
++  NameBuffer* name_buffer_;
+ 
++ private:
+   virtual void LogRecordedBuffer(Code* code,
+                                  SharedFunctionInfo* shared,
+                                  const char* name,
+                                  int length) = 0;
+-
+-  NameBuffer* name_buffer_;
+ };
+ 
+ 
 Index: src/log.cc
 ===================================================================
---- src/log.cc	(revision 17269)
+--- src/log.cc	(revision 16872)
 +++ src/log.cc	(working copy)
 @@ -43,6 +43,9 @@
  #include "string-stream.h"
@@ -405,82 +453,6 @@ Index: src/log.cc
    }
  
    if (FLAG_log_internal_timer_events || FLAG_prof) timer_.Start();
-Index: src/log.h
-===================================================================
---- src/log.h	(revision 17269)
-+++ src/log.h	(working copy)
-@@ -352,6 +352,13 @@
-   // When data collection is paused, CPU Tick events are discarded.
-   void StopProfiler();
- 
-+  // Resumes collection of CPU Tick events.
-+  void XDKResumeProfiler();
-+
-+  // XDK agent uses it log code map (list of CodeAdded event
-+  // before resume CPU Tick events.
-+  Log* XDKGetLog() { return log_; }
-+
-   void LogExistingFunction(Handle<SharedFunctionInfo> shared,
-                            Handle<Code> code);
-   // Logs all compiled functions found in the heap.
-@@ -474,6 +481,19 @@
-   virtual void CodeCreateEvent(Logger::LogEventsAndTags tag,
-                                Code* code,
-                                int args_count) = 0;
-+
-+  // This overload function is already added in the latest V8 version.
-+  // We have to do it because currently Crosswalk depends on V8 version which
-+  // does not have this overload function.
-+  // It will be removed once Crosswalk moves on new latest V8 version.
-+  virtual void CodeCreateEvent(Logger::LogEventsAndTags tag,
-+                               Code* code,
-+                               SharedFunctionInfo* shared,
-+                               CompilationInfo* info,
-+                               Name* source,
-+                               int line,
-+                               int column) { }
-+
-   virtual void CallbackEvent(Name* name, Address entry_point) = 0;
-   virtual void GetterCallbackEvent(Name* name, Address entry_point) = 0;
-   virtual void SetterCallbackEvent(Name* name, Address entry_point) = 0;
-@@ -510,6 +530,18 @@
-                                CompilationInfo* info,
-                                Name* source,
-                                int line);
-+
-+  // This overload function is already added in the latest V8 version.
-+  // We have to do it because currently Crosswalk depends on V8 version which
-+  // does not have this overload function.
-+  // It will be removed once Crosswalk moves on new latest V8 version.
-+  virtual void CodeCreateEvent(Logger::LogEventsAndTags tag,
-+                               Code* code,
-+                               SharedFunctionInfo* shared,
-+                               CompilationInfo* info,
-+                               Name* source,
-+                               int line, int column);
-+
-   virtual void RegExpCodeCreateEvent(Code* code, String* source);
- 
-   virtual void CallbackEvent(Name* name, Address entry_point) { }
-@@ -518,15 +550,15 @@
-   virtual void SharedFunctionInfoMoveEvent(Address from, Address to) { }
-   virtual void CodeMovingGCEvent() { }
- 
-- private:
-+ protected:
-   class NameBuffer;
-+  NameBuffer* name_buffer_;
- 
-+ private:
-   virtual void LogRecordedBuffer(Code* code,
-                                  SharedFunctionInfo* shared,
-                                  const char* name,
-                                  int length) = 0;
--
--  NameBuffer* name_buffer_;
- };
- 
- 
 Index: src/third_party/xdk/xdk-v8.cc
 ===================================================================
 --- src/third_party/xdk/xdk-v8.cc	(revision 0)
@@ -517,7 +489,7 @@ Index: src/third_party/xdk/xdk-agent.cc
 ===================================================================
 --- src/third_party/xdk/xdk-agent.cc	(revision 0)
 +++ src/third_party/xdk/xdk-agent.cc	(revision 0)
-@@ -0,0 +1,476 @@
+@@ -0,0 +1,482 @@
 +// Copyright (c) 2013 Intel Corporation. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -555,12 +527,18 @@ Index: src/third_party/xdk/xdk-agent.cc
 +
 +bool XDKAgent::setUp(v8engine::Isolate* isolate) {
 +  CHECK(isolate);
-+  CHECK(!m_isolate);  // Can't be initialized twice.
-+  m_isolate = isolate;
++
++  if (m_isolate) {
++    // The setUp method is called for the main thread first, then may be called
++    // again if the app uses Workers (each Worker object has own V8 instance).
++    // XDK agent does not support JavaScript Worker currently.
++    return false;
++  }
 +
 +  FILE* file = v8engine::OS::FOpen(XDK_MARKER_FILE, "r");
 +  if (file != NULL) {
 +    m_alive = true;
++    m_isolate = isolate;
 +    fclose(file);
 +  }
 +
@@ -1581,3 +1559,31 @@ Index: src/third_party/xdk/xdk-v8.gyp
 +    },
 +  ]
 +}
+Index: build/features.gypi
+===================================================================
+--- build/features.gypi	(revision 16872)
++++ build/features.gypi	(working copy)
+@@ -43,6 +43,9 @@
+ 
+     'v8_use_snapshot%': 'true',
+ 
++     # Enable XDK profiling support by default.
++    'v8_enable_xdkprof': 1,
++
+     # With post mortem support enabled, metadata is embedded into libv8 that
+     # describes various parameters of the VM for use by debuggers. See
+     # tools/gen-postmortem-metadata.py for details.
+Index: tools/gyp/v8.gyp
+===================================================================
+--- tools/gyp/v8.gyp	(revision 16872)
++++ tools/gyp/v8.gyp	(working copy)
+@@ -554,6 +554,9 @@
+         }, {
+           'toolsets': ['target'],
+         }],
++       ['v8_enable_xdkprof==1', {
++          'dependencies': ['../../src/third_party/xdk/xdk-v8.gyp:v8_xdk',],
++        }],
+         ['v8_target_arch=="arm"', {
+           'sources': [  ### gcmole(arch:arm) ###
+             '../../src/arm/assembler-arm-inl.h',
